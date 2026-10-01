@@ -41,7 +41,13 @@ Our goal is to address with this kinetic error rate and design a robust system.
 
 ## tile design hypothesis
 
-???
+
+the theoretical line is overestimated
+- it should not be linear obviously
+
+H_{0, 0}: two segments and interface for each
+H_{0, 1}: one segment and its interface
+H_{1, 0}: another pair
 
 
 ### rejected hypothesis
