@@ -64,7 +64,7 @@ reason for rejection:
 2. no-assembly-split constraint allowing a prefix secondary locking making the unwanted thermodynamic favorability
 
 context:
-- the only way to for a tile with very low affinity to achieve a low detachment rate at a relatively relevant chance
+- the only way to for a tile with very low affinity to achieve a low detachment rate by the relatively relevant chance
 
 reason for rejection:
 - rgrow kTAM description: "Zero-strength attachments events are ignored" and "G_link is set 0 by default"
