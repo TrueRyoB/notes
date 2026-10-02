@@ -1,0 +1,25 @@
+a,d,g,j,m,d
+b,e,h,k,n,e
+b,e,h,k,n,e
+b,e,h,k,n,e
+b,e,h,k,n,e
+b,e,h,k,n,e
+b,e,h,k,n,e
+b,e,h,k,n,e
+b,e,h,k,n,e
+b,e,h,k,n,e
+b,e,h,k,n,e
+c,f,i,l,o,f
+seed,A,B,C,D,A (cont)
+,It is as simple as this!!,,,,
+,rotation should be prohibited under this tile config,,,,
+,adjust the initial concentration of each tile based on their appearance to each column,,,,
+,each tile should have affinity of 1 to adjacent tiles and 0 if otherwise,,,,
+,,,,,
+,A,segment 1,"L:10, R:10",,
+,B,interface 1,"L:10, R:9",,
+,C,segment 2,"L:9, R:9",,
+,D,interface 2,"L:9, R:10",,
+,,,,,
+,every tile has their unique blocker (2),,,,
+,"no concentrations for seed, obviously",,,,
