@@ -24,17 +24,15 @@ This aims to reduce the problem scope by addressing the tile design error possib
 
 ```csv
 ,,,,,,,,
-,,,,,,,,
-,,,,,,,,
-,,,,,,,,
-,,,,(red4),green,,,
-,,,(red3),blue,green,green,,
-,,(red2),yellow,blue,blue,green,green,
-,(red1),green,yellow,yellow,blue,blue,green,green
-,blue,green,green,yellow,yellow,blue,blue,red1
-,blue,blue,green,green,yellow,yellow,red3,
-,,blue,blue,green,green,red2,,
-,,,blue,blue,red1,,,
+,,,,(red4),green1,,,
+,,,(red3),blue1,green2,green3,,
+,,(red2),yellow1,blue2,blue3,green4,green5,
+,(red1),green1,yellow2,yellow3,blue4,blue5,green6,green7
+,blue1,green2,green3,yellow4,yellow5,blue6,blue7,red1
+,blue2,blue3,green4,green5,yellow6,yellow7,red3,
+,,blue4,blue5,green6,green7,red2,,
+,,,blue6,blue7,red1,,,
 ,,,,red3,,,,
 ```
 
+seed: blue2, blue4, blue6
