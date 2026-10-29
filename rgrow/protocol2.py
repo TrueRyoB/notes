@@ -190,7 +190,8 @@ def make_tileset(model: str = "atam"):
         glues=make_glues(specs),
         seed=make_seed(),
         size=(CANVAS_HEIGHT, CANVAS_WIDTH),
-        canvas_type="Square",
+        # canvas_type="Square",
+        canvas_type="Tube",
     )
     if model == "atam":
         # Current rGrow aTAM reads threshold rather than the legacy tau field.
