@@ -1,65 +1,68 @@
-#include <bits/stdc++.h>
+#include <array>
+#include <vector>
+
 using namespace std;
-#define pii pair<int, int>
 
-int32_t main() {
+int main() {
+  // Named model parameters.  W follows the requested tube circumference;
+  // the Seed has two structural layers, so it has 2 * W Seed tiles.
+  const int CIRCUMFERENCE = 6;
+  const int LAYER_COUNT = 5;
+  const int SEED_LAYER_COUNT = 2;
+  const int W = CIRCUMFERENCE;
+  const int L = LAYER_COUNT;
+  const int H = (L % 2 == 1) ? L * 2 : L;
+  const int SEEDH = SEED_LAYER_COUNT;
+  const int NO_TILE = -1;
 
-  //circumferences, number of layers
-  int W=12, L=5;
-
-  //we are assuming the height of each layer to be 1
-
-  //layer at each column needs its own tile configuration
-
-  //if the L is odd, we need another set of tile configuration
-  //...to enable growing forward without tweaking to either way
-
-  int H=(L%2==1) ? L*2 : L;
-
-  vector<int> color(H, 0);
-  for(int i=0; i<H; ++i) color[i]=i%L;
-
-  //the binding opponent
-  //0-1
-  //-x-
-  //2-3
-  vector<vector<int>> binding(W*H, 4);
-
-  auto mapping=[&](int i, int j) {
-    return i*W+j;
+  // The regular tile IDs occupy [0, H * W).  ``binding`` stores the
+  // direction-specific logical opponent ID: N, E, W, S.
+  const auto regular_id = [W, H](int i, int j) {
+    return ((i % H + H) % H) * W + ((j % W + W) % W);
   };
+  vector<array<int, 4>> binding(H * W);
 
-  for(int i=0; i<H; ++i) for(int j=0; j<W; ++j) for(int k=0; k<4; ++k) {
-
-    int ni=(k<=1) ? (i+1)%H : (i+H-1)%H;
-    int nj=(k%2==0) ? j : (j+1)%W;
-
-    binding[mapping(i, j)][k]=mapping(ni, nj);
-  }
-
-  //incorrect seed config: they have to be at least 2-layered forming a "w"-like shape
-  int SEEDH=10; //for the stability
-  int SIDX=H*W;
-  unordered_map<vector<int>> seed(SEEDH*W, 4);
-  for(int i=0; i<SEEDH; ++i) for(int j=0; j<W; ++j) for(int k=0; k<4; ++k) {
-
-    int u=i+SIDX, m=mapping(u, j);
-    if(seed[m].find()==seed.end()) seed[m]=vector<int>(4);
-
-    if(i==0 && k>=2) {
-      seed[m][k]=-1;
-      continue;
+  for (int i = 0; i < H; ++i) {
+    for (int j = 0; j < W; ++j) {
+      for (int k = 0; k < 4; ++k) {
+        const int ni = (k <= 1) ? (i + 1) % H : (i + H - 1) % H;
+        const int nj = j + (k % 2) - (i % 2);
+        binding[regular_id(i, j)][k] = regular_id(ni, nj);
+      }
     }
-
-    //the final seed binds to one of the row of general seeds
-    int ni=(k<=1) ? (i+1==SEEDH ? 0 : u+1) : u-1;
-    int nj=(k%2==0) ? j : (j+1)%W;
-
-    seed[m][k]=mapping(ni, nj);
   }
 
-  unordered_map<pii> 
+  // Seed IDs follow the regular IDs contiguously:
+  // [H * W, H * W + SEEDH * W).  Do not pass a seed row through
+  // regular_id/mapping: it would multiply the H * W offset by W.
+  const int SIDX = H * W;
+  const auto seed_id = [SIDX, W](int depth, int position) {
+    return SIDX + depth * W + ((position % W + W) % W);
+  };
+  vector<array<int, 4>> seed(SEEDH * W);
 
+  for (int i = 0; i < SEEDH; ++i) {
+    for (int j = 0; j < W; ++j) {
+      const int m = seed_id(i, j);
+      const int local_seed_index = m - SIDX;
+      for (int k = 0; k < 4; ++k) {
+        if (i == 0 && k >= 2) {
+          seed[local_seed_index][k] = NO_TILE;
+          continue;
+        }
+
+        const int nj = j + (k % 2) - (i % 2);
+        if (k <= 1 && i + 1 == SEEDH) {
+          // The final seed row targets regular phase zero.
+          seed[local_seed_index][k] = regular_id(0, nj);
+        } else if (k <= 1) {
+          seed[local_seed_index][k] = seed_id(i + 1, nj);
+        } else {
+          seed[local_seed_index][k] = seed_id(i - 1, nj);
+        }
+      }
+    }
+  }
 
   return 0;
 }
