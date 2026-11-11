@@ -1,0 +1,8 @@
+scp "$HOME\Downloads\notes\rgrow\protocol3.py" raraki@aicv-duo.ddns.uark.edu:/home/raraki/
+ssh raraki@aicv-duo.ddns.uark.edu
+
+python protocol3.py --output p3-config.csv --simulate --plot p3-vis.png
+exit
+
+scp raraki@aicv-duo.ddns.uark.edu:/home/raraki/p3-vis.png "$HOME\Downloads\notes\rgrow\results" 
+scp raraki@aicv-duo.ddns.uark.edu:/home/raraki/p3-config.csv "$HOME\Downloads\notes\rgrow\results" 

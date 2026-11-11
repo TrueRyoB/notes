@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import argparse
 import csv
-from collections import deque
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, Iterable, Mapping, Tuple
@@ -119,12 +118,30 @@ class Canvas:
 
     @property
     def default_seed_origin(self) -> Coordinate:
-        """Keep the initial N-directed Seed growth away from the top seam."""
+        """Anchor logical Seed coordinate ``(i, j) = (0, 0)`` on the canvas."""
         return (self.circumference - 1, self.first_usable_x)
 
     def seed_coordinate(self, y: int, x: int) -> Coordinate:
-        """Canonical canvas coordinate for an unwrapped BFS Seed coordinate."""
+        """Canonical canvas coordinate used for an rGrow Seed placement."""
         return (y % self.circumference, x)
+
+    def logical_coordinate(
+        self, axial_i: int, circumference_j: int, origin: Coordinate
+    ) -> Coordinate:
+        """Map logical tube coordinate ``(i, j)`` to ``tube-diagonals``.
+
+        ``j`` advances around the periodic row coordinate.  ``i`` advances
+        along the open axial coordinate.  The column correction at each row
+        seam is exactly the one used by :meth:`move`.
+        """
+        origin_y, origin_x = self.seed_coordinate(*origin)
+        unwrapped_y = origin_y - circumference_j
+        north_seams = -(unwrapped_y // self.circumference)
+        return (
+            unwrapped_y % self.circumference,
+            origin_x + axial_i + circumference_j // 2
+            - north_seams * self.half_circumference,
+        )
 
     def move(self, coordinate: Coordinate, direction: str) -> Coordinate:
         """Apply rGrow's ``CanvasTubeDiagonals`` transition for one side."""
@@ -155,15 +172,20 @@ def seed_id(depth: int, position: int) -> int:
 
 
 def build_tiles() -> Dict[int, Tile]:
-    """Translate the C++ normal and Seed adjacency loops without reinterpretation."""
+    """Build the C++ normal and Seed adjacency tables.
+
+    The normal table wraps both tile-type indices.  The Seed is a finite
+    two-layer strip in the open ``i`` direction and wraps only its ``j``
+    circumference index.
+    """
     tiles: Dict[int, Tile] = {}
 
     for phase in range(H):
         for position in range(W):
             neighbours = tuple(
                 regular_id(
-                    phase + 1 if direction in ("N", "E") else phase - 1,
-                    position + (direction_index % 2) - (phase % 2),
+                    phase + (direction_index % 2) - (position % 2),
+                    position + (1 if direction in ("N", "E") else -1),
                 )
                 for direction_index, direction in enumerate(DIRECTIONS)
             )
@@ -174,15 +196,14 @@ def build_tiles() -> Dict[int, Tile]:
         for position in range(W):
             neighbours = []
             for direction_index, direction in enumerate(DIRECTIONS):
-                next_position = position + (direction_index % 2) - (depth % 2)
-                if depth == 0 and direction in ("W", "S"):
+                next_depth = depth + (direction_index % 2) - (position % 2)
+                next_position = position + (1 if direction in ("N", "E") else -1)
+                if next_depth < 0:
                     target = NO_TILE
-                elif direction in ("N", "E") and depth + 1 == SEEDH:
+                elif next_depth >= SEEDH:
                     target = regular_id(0, next_position)
-                elif direction in ("N", "E"):
-                    target = seed_id(depth + 1, next_position)
                 else:
-                    target = seed_id(depth - 1, next_position)
+                    target = seed_id(next_depth, next_position)
                 neighbours.append(target)
             tile_id = seed_id(depth, position)
             tiles[tile_id] = Tile(tile_id, "seed", depth, position, tuple(neighbours))
@@ -193,35 +214,38 @@ def build_tiles() -> Dict[int, Tile]:
 def assign_seed_coordinates(
     tiles: Mapping[int, Tile], canvas: Canvas = Canvas(), origin: Coordinate | None = None
 ) -> Tuple[Dict[int, Coordinate], Tuple[FrontierInterface, ...]]:
-    """Assign Seed positions by breadth-first traversal from Seed (0, 0).
+    """Place every Seed tile from its logical ``(i, j)`` coordinate.
 
-    A tile is positioned the first time BFS reaches it.  Its stored logical
-    neighbours are never rewritten or inferred from a coordinate formula.
-    Regular tiles reached from the final Seed row are recorded as frontier
-    interfaces; this design program does not assign a global regular-tile net.
+    This is not a first-arrival BFS embedding: each of the ``SEEDH * W``
+    tiles gets its unique geometric position directly.  Every internal C++
+    Seed edge is checked against the corresponding rGrow canvas transition.
     """
-    root = seed_id(0, 0)
     origin = canvas.default_seed_origin if origin is None else origin
-    coordinates: Dict[int, Coordinate] = {root: origin}
-    frontier = []
-    queue = deque([root])
+    coordinates = {
+        seed_id(depth, position): canvas.logical_coordinate(depth, position, origin)
+        for depth in range(SEEDH)
+        for position in range(W)
+    }
+    if len(set(coordinates.values())) != len(coordinates):
+        raise AssertionError("Seed logical coordinates map to overlapping canvas cells")
 
-    while queue:
-        current_id = queue.popleft()
+    frontier = []
+    for current_id, coordinate in coordinates.items():
         current = tiles[current_id]
-        y, x = coordinates[current_id]
         for direction, target_id in zip(DIRECTIONS, current.neighbours):
             if target_id == NO_TILE:
                 continue
-            target_coordinate = canvas.move((y, x), direction)
+            target_coordinate = canvas.move(coordinate, direction)
             target = tiles[target_id]
             if target.kind == "regular":
                 frontier.append(
                     FrontierInterface(current_id, direction, target_id, target_coordinate)
                 )
-            elif target_id not in coordinates:
-                coordinates[target_id] = target_coordinate
-                queue.append(target_id)
+            elif coordinates[target_id] != target_coordinate:
+                raise AssertionError(
+                    f"Seed edge {current_id}.{direction} does not match its logical "
+                    f"target {target_id}: {target_coordinate} != {coordinates[target_id]}"
+                )
 
     return coordinates, tuple(frontier)
 

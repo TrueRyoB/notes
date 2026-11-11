@@ -16,7 +16,8 @@ int main() {
   const int NO_TILE = -1;
 
   // The regular tile IDs occupy [0, H * W).  ``binding`` stores the
-  // direction-specific logical opponent ID: N, E, W, S.
+  // direction-specific logical opponent ID: N, E, W, S.  ``j`` is the
+  // periodic tube circumference and ``i`` is the open axial coordinate.
   const auto regular_id = [W, H](int i, int j) {
     return ((i % H + H) % H) * W + ((j % W + W) % W);
   };
@@ -25,8 +26,8 @@ int main() {
   for (int i = 0; i < H; ++i) {
     for (int j = 0; j < W; ++j) {
       for (int k = 0; k < 4; ++k) {
-        const int ni = (k <= 1) ? (i + 1) % H : (i + H - 1) % H;
-        const int nj = j + (k % 2) - (i % 2);
+        const int ni = i + (k % 2) - (j % 2);
+        const int nj = j + ((k <= 1) ? 1 : -1);
         binding[regular_id(i, j)][k] = regular_id(ni, nj);
       }
     }
@@ -46,19 +47,19 @@ int main() {
       const int m = seed_id(i, j);
       const int local_seed_index = m - SIDX;
       for (int k = 0; k < 4; ++k) {
-        if (i == 0 && k >= 2) {
+        const int ni = i + (k % 2) - (j % 2);
+        const int nj = j + ((k <= 1) ? 1 : -1);
+
+        if (ni < 0) {
           seed[local_seed_index][k] = NO_TILE;
           continue;
         }
 
-        const int nj = j + (k % 2) - (i % 2);
-        if (k <= 1 && i + 1 == SEEDH) {
-          // The final seed row targets regular phase zero.
+        if (ni >= SEEDH) {
+          // The outward axial boundary targets regular phase zero.
           seed[local_seed_index][k] = regular_id(0, nj);
-        } else if (k <= 1) {
-          seed[local_seed_index][k] = seed_id(i + 1, nj);
         } else {
-          seed[local_seed_index][k] = seed_id(i - 1, nj);
+          seed[local_seed_index][k] = seed_id(ni, nj);
         }
       }
     }
